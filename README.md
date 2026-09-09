@@ -106,6 +106,7 @@ scoring, dedup) de forma rápida y offline.
 | `confidence.py` | Cálculo de score de confianza y estado |
 | `db.py` | Almacenamiento SQLite (observaciones + taxonomía) |
 | `taxonomy.csv` | Modalidades y marcas de equipos (subconjunto tipo GMDN) |
+| `context/` | Reglas del hackathon, research de QVAC, y notas técnicas verificadas de la integración — ver [`context/README.md`](context/README.md) si vas a atacar otro reto reutilizando esta base |
 
 ## Guión de demo (para el video)
 
