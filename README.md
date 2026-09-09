@@ -28,12 +28,23 @@ inferencia corriendo **on-device vía QVAC** — sin llamadas a APIs en la nube.
 Toda la inferencia (transcripción + extracción) corre localmente a través del
 SDK de QVAC (`tetherto.qvac_sdk`), sin ninguna llamada a una API en la nube.
 
+## Interfaz
+
+La interfaz principal es una app React (asistente en 5 pasos: Login → Modo →
+Captura → Revisión → Panel, con panel de vidrio y transiciones deslizantes) que
+habla con un backend FastAPI delgado. La app Streamlit original (`app.py`)
+se mantiene en el repo como respaldo funcional — no se tocó.
+
 ## Instalación
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+cd frontend && npm install
 ```
+
+`ffmpeg` debe estar instalado en el sistema (usado para transcodificar el
+audio del navegador a WAV antes de pasarlo a QVAC).
 
 La primera ejecución de QVAC puede tardar unos minutos: descarga el worker de
 QVAC y los pesos de los modelos (Qwen3-1.7B-Instruct + Whisper) una sola vez.
@@ -44,6 +55,18 @@ Si el worker no se encuentra automáticamente, ejecuta:
 ```
 
 ## Ejecutar
+
+**Interfaz React (principal)** — dos procesos, backend y frontend:
+
+```bash
+.venv/bin/uvicorn api:app --port 8000 --reload    # terminal 1
+cd frontend && npm run dev                        # terminal 2
+```
+
+Abrir `http://localhost:5173` (el dev server de Vite redirige `/api/*` al
+backend en el puerto 8000).
+
+**Interfaz Streamlit (respaldo)**:
 
 ```bash
 .venv/bin/streamlit run app.py
@@ -63,7 +86,9 @@ scoring, dedup) de forma rápida y offline.
 
 | Archivo | Responsabilidad |
 |---|---|
-| `app.py` | UI Streamlit (Captura + Panel) |
+| `api.py` | Backend FastAPI — envuelve los módulos de abajo, sin lógica propia |
+| `frontend/` | UI React (Vite + TypeScript + Tailwind + shadcn/ui) |
+| `app.py` | UI Streamlit de respaldo (Captura + Panel) |
 | `qvac_client.py` | Conexión y carga de modelos vía QVAC SDK |
 | `extract.py` | Schema JSON, prompt de extracción, normalización |
 | `dedupe.py` | Detección de duplicados (rapidfuzz) |
