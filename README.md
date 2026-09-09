@@ -7,20 +7,24 @@ inferencia corriendo **on-device vía QVAC** — sin llamadas a APIs en la nube.
 
 ## Cómo funciona
 
-1. **Captura**: el usuario escribe o graba una observación en lenguaje natural.
-2. **Transcripción** (si es voz): Whisper on-device vía QVAC.
-3. **Extracción**: un modelo pequeño (Qwen3-1.7B-Instruct) cargado vía QVAC extrae
+1. **Captura**: el usuario escribe, graba o **fotografía** una observación.
+   - Texto: se usa directamente.
+   - Voz: Whisper on-device vía QVAC transcribe el audio a texto.
+   - Foto: VisionPsy-Nano (VLM) lee la placa/etiqueta del equipo y genera una
+     descripción; esa descripción entra al mismo pipeline de extracción que el
+     texto/voz — la foto solo cambia la fuente del texto de entrada.
+2. **Extracción**: un modelo pequeño (Qwen3-1.7B-Instruct) cargado vía QVAC extrae
    cliente, ciudad, país, modalidad, marca, modelo, cantidad y antigüedad,
    usando salida estructurada (JSON Schema forzado a nivel de decodificación).
-4. **Confirmación**: los campos que el modelo no pudo inferir quedan vacíos en un
+3. **Confirmación**: los campos que el modelo no pudo inferir quedan vacíos en un
    formulario editable — así se resuelve el "preguntar por lo que falta" sin
    necesidad de un motor de diálogo.
-5. **Deduplicación**: `rapidfuzz` compara la nueva observación contra las
+4. **Deduplicación**: `rapidfuzz` compara la nueva observación contra las
    existentes (cliente + ciudad + modalidad + marca); si hay coincidencia fuerte,
    se suma como corroboración en vez de crear un registro nuevo.
-6. **Confianza**: `0.7 × completitud + 0.3 × corroboración`, mapeado a
+5. **Confianza**: `0.7 × completitud + 0.3 × corroboración`, mapeado a
    Confirmado / Reportado / Estimado / Desconocido.
-7. **Panel**: vista por cliente y vista agregada (modalidad × marca) entre
+6. **Panel**: vista por cliente y vista agregada (modalidad × marca) entre
    todos los clientes.
 
 ## Requisito técnico cumplido
@@ -109,13 +113,13 @@ scoring, dedup) de forma rápida y offline.
 5. Ir a Panel → mostrar la vista por cliente y la vista agregada.
 6. Mencionar explícitamente que todo corrió on-device (sin conexión) vía QVAC.
 
-## Fuera de alcance para el MVP (deliberado)
+## Fuera de alcance (deliberado)
 
-- **Captura por foto (VLM)**: identificar equipo desde una foto de la placa
-  usando `VisionPsy-Nano` — quedó fuera del MVP a propósito para asegurar
-  primero el flujo texto/voz de punta a punta; es la siguiente extensión
-  natural una vez el MVP esté validado, reutilizando el mismo pipeline de
-  extracción (la foto solo cambiaría la fuente de texto de entrada).
 - Motor de diálogo multi-turno para preguntas de seguimiento — un formulario
   editable con los campos faltantes ya cumple ese requisito sin la
   complejidad de un gestor de conversación.
+- **Nota sobre la captura por foto**: VisionPsy-Nano es un modelo muy pequeño
+  (460M parámetros) y a veces es inconsistente — en pruebas, a veces confirma
+  su propia lectura y a veces la niega en la misma respuesta aunque el texto
+  sea legible. Cuando falla, el formulario de revisión queda vacío igual que
+  con texto/voz, y el usuario completa a mano.
