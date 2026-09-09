@@ -3,3 +3,6 @@ streamlit
 rapidfuzz
 pandas
 pytest
+fastapi
+uvicorn
+python-multipart
