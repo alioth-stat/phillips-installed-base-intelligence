@@ -50,9 +50,17 @@ else
 fi
 
 if [ "$target" = phone ]; then
-    echo "Installing Termux system packages (python, node, ffmpeg, clang)..."
+    echo "Installing Termux system packages (python, node, ffmpeg, clang, rust)..."
     pkg update -y
-    pkg install -y python nodejs-lts ffmpeg clang git
+    # `rust` matters specifically: pydantic-core (pulled in by fastapi and
+    # tetherto.qvac_sdk) is a Rust extension with no prebuilt wheel for
+    # aarch64-linux-android on PyPI, so pip falls back to building it from
+    # source via maturin -- which then tries to auto-provision Rust via
+    # rustup, and rustup doesn't support that exact target triple ("Target
+    # triple not supported by rustup", confirmed live). Termux's own `rust`
+    # package is already built for this environment; once it's on PATH,
+    # maturin uses it directly instead of reaching for rustup.
+    pkg install -y python nodejs-lts ffmpeg clang rust git
 
     # Check for the actual binary, not just the directory -- a venv left
     # behind by a prior failed install would otherwise pass a bare `-d .venv`

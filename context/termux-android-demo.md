@@ -31,11 +31,17 @@ like it does on a desktop today.
    is stale and missing packages this needs.
 2. Install the toolchain:
    ```
-   pkg install python nodejs-lts ffmpeg clang git
+   pkg install python nodejs-lts ffmpeg clang rust git
    ```
    `clang` is there because some Python dependencies may need to build a C
    extension under Termux's bionic libc rather than pull a prebuilt
-   manylinux wheel.
+   manylinux wheel. `rust` is there specifically for `pydantic-core` (pulled
+   in by `fastapi` and `tetherto.qvac_sdk`): PyPI has no prebuilt wheel for
+   `aarch64-linux-android`, so pip builds it from source via `maturin`, which
+   otherwise tries to auto-provision Rust via `rustup` and fails —
+   `rustup` doesn't support that exact target triple. Termux's own `rust`
+   package is already built for this environment; with it on `PATH`,
+   `maturin` uses it directly instead of reaching for `rustup`.
 3. Get the repo onto the phone — `git clone` if the repo has a remote
    reachable from the phone, otherwise `termux-setup-storage` and copy it in.
 4. Install Python deps:
