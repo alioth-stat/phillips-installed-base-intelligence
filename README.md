@@ -60,7 +60,14 @@ Si el worker no se encuentra automáticamente, ejecuta:
 
 ## Ejecutar
 
-**Interfaz React (principal)** — dos procesos, backend y frontend:
+**Un solo comando** (crea el venv e instala dependencias si hace falta,
+levanta backend y frontend juntos, Ctrl+C detiene ambos):
+
+```bash
+./run.sh
+```
+
+**Manual**, si prefieres controlarlo por separado:
 
 ```bash
 .venv/bin/uvicorn api:app --port 8000 --reload    # terminal 1
