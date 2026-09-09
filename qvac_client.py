@@ -113,7 +113,16 @@ def extract_sync(text: str, json_schema: dict, system_prompt: str | None = None)
 
 async def _transcribe(audio_file_path: str) -> str:
     transport = _state["client"].transport
-    req = TranscribeRequest(modelId=_state["whisper_id"], audioChunk={"type": "filePath", "value": audio_file_path})
+    # ponytail: `type` has a pydantic default, but the SDK builds the wire
+    # payload with exclude_unset=True, which drops any field the caller
+    # didn't pass explicitly -- including a defaulted one. Omitting it here
+    # strips the payload's routing discriminator, so the worker never opens
+    # the transcription stream ("expected a response stream", observed live).
+    req = TranscribeRequest(
+        modelId=_state["whisper_id"],
+        type="transcribe",
+        audioChunk={"type": "filePath", "value": audio_file_path},
+    )
     last_text = ""
     async for resp in transcribe(transport, req):
         if resp.text:
