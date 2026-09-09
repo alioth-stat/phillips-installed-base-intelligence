@@ -60,8 +60,11 @@ if [ "$target" = phone ]; then
         # FastAPI path this runs -- it's also the dependency most likely to
         # need a from-source build under Termux's bionic libc, so skip it
         # here rather than fight it for a path that never imports it.
-        grep -v '^pandas$' requirements.txt > /tmp/requirements.termux.txt
-        .venv/bin/pip install -q -r /tmp/requirements.termux.txt
+        # Process substitution instead of a /tmp file: Termux doesn't give
+        # the app a writable /tmp at the standard path (confirmed live --
+        # "/tmp/requirements.termux.txt: Permission denied"), since Android's
+        # per-app sandboxing keeps Termux's writable area under $PREFIX.
+        .venv/bin/pip install -q -r <(grep -v '^pandas$' requirements.txt)
     fi
 
     if [ ! -d frontend/node_modules ]; then
