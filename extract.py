@@ -40,11 +40,16 @@ JSON: {"customer": "Hospital DemoCare Pacific", "city": null, "country": "PanamÃ
 """
 
 
+_NULLISH_STRINGS = {"", "null", "none", "n/a", "desconocido"}
+
+
 def _normalize(raw: dict) -> dict:
     out = {}
     for field in EXTRACTION_FIELDS:
         value = raw.get(field)
-        out[field] = value if value not in ("", None) else None
+        if isinstance(value, str) and value.strip().lower() in _NULLISH_STRINGS:
+            value = None
+        out[field] = value
     return out
 
 

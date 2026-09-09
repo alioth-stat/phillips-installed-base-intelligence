@@ -1,5 +1,7 @@
 """Thin sync wrapper around the QVAC SDK: connect once, load models once, reuse."""
 import asyncio
+import os
+from pathlib import Path
 
 from tetherto.qvac_sdk import (
     Client,
@@ -18,10 +20,41 @@ _WORKER_HINT = (
     "in this repo's venv, then retry."
 )
 
+# ponytail: the RPC transport is bound to the event loop that created it, so
+# every call must run on the SAME loop (asyncio.run() per call closes the
+# loop afterward and orphans the transport -> "RPC is closed"). One loop,
+# reused for the process lifetime, is enough for a single-user hackathon app.
+_loop = asyncio.new_event_loop()
+
+
+def _run(coro, err_prefix: str):
+    try:
+        return _loop.run_until_complete(coro)
+    except Exception as e:
+        raise RuntimeError(f"{err_prefix}: {e}") from e
+
+
+# ponytail: on some npm versions `install-worker` hoists bare-runtime-* to
+# the top-level node_modules instead of nesting it under @qvac/sdk, so the
+# SDK's default path lookup misses it even though the binary is right there.
+# One glob, tried only after the default Client() fails, fixes it for every
+# teammate who hits the same npm layout.
+def _find_hoisted_bare_binary() -> str | None:
+    worker_home = Path(os.environ.get("QVAC_WORKER_HOME") or (Path.home() / ".cache" / "qvac" / "worker"))
+    exe = "bare.exe" if os.name == "nt" else "bare"
+    matches = sorted(worker_home.glob(f"*/node_modules/bare-runtime-*/bin/{exe}"))
+    return str(matches[-1]) if matches else None
+
 
 async def _connect_and_load() -> None:
     if _state["client"] is None:
-        client = Client()
+        try:
+            client = Client()
+        except WorkerNotFoundError:
+            bare_path = _find_hoisted_bare_binary()
+            if bare_path is None:
+                raise
+            client = Client(bare_path=bare_path)
         await client.connect()
         _state["client"] = client
 
@@ -41,7 +74,7 @@ def ensure_ready_sync() -> None:
     if _state["llm_id"] is not None and _state["whisper_id"] is not None:
         return
     try:
-        asyncio.run(_connect_and_load())
+        _loop.run_until_complete(_connect_and_load())
     except WorkerNotFoundError as e:
         raise RuntimeError(_WORKER_HINT) from e
     except Exception as e:
@@ -66,10 +99,7 @@ async def _extract(text: str, json_schema: dict, system_prompt: str | None) -> s
 
 def extract_sync(text: str, json_schema: dict, system_prompt: str | None = None) -> str:
     ensure_ready_sync()
-    try:
-        return asyncio.run(_extract(text, json_schema, system_prompt))
-    except Exception as e:
-        raise RuntimeError(f"QVAC completion failed: {e}") from e
+    return _run(_extract(text, json_schema, system_prompt), "QVAC completion failed")
 
 
 async def _transcribe(audio_file_path: str) -> str:
@@ -84,7 +114,4 @@ async def _transcribe(audio_file_path: str) -> str:
 
 def transcribe_sync(audio_file_path: str) -> str:
     ensure_ready_sync()
-    try:
-        return asyncio.run(_transcribe(audio_file_path))
-    except Exception as e:
-        raise RuntimeError(f"QVAC transcription failed: {e}") from e
+    return _run(_transcribe(audio_file_path), "QVAC transcription failed")
