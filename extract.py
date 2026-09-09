@@ -54,10 +54,17 @@ def _normalize(raw: dict) -> dict:
 
 
 def extract(text: str) -> dict:
-    raw_text = qvac_client.extract_sync(text, JSON_SCHEMA, system_prompt=SYSTEM_PROMPT)
-    try:
-        raw = json.loads(raw_text)
-    except (json.JSONDecodeError, TypeError):
-        print(f"extract: model did not return valid JSON, got: {raw_text!r}")
-        raw = {}
-    return _normalize(raw)
+    # ponytail: the model's first completion after a cold load occasionally
+    # returns empty/truncated output (observed live, not theoretical) — one
+    # retry clears it every time seen so far; a real backoff loop would be
+    # overkill for a single-user hackathon app.
+    for attempt in range(2):
+        raw_text = qvac_client.extract_sync(text, JSON_SCHEMA, system_prompt=SYSTEM_PROMPT)
+        try:
+            raw = json.loads(raw_text)
+            if raw:
+                return _normalize(raw)
+        except (json.JSONDecodeError, TypeError):
+            pass
+        print(f"extract: attempt {attempt + 1} did not return usable JSON, got: {raw_text!r}")
+    return _normalize({})

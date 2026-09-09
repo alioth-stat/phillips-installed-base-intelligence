@@ -1,6 +1,7 @@
 """Thin sync wrapper around the QVAC SDK: connect once, load models once, reuse."""
 import asyncio
 import os
+import threading
 from pathlib import Path
 
 from tetherto.qvac_sdk import (
@@ -26,10 +27,17 @@ _WORKER_HINT = (
 # reused for the process lifetime, is enough for a single-user hackathon app.
 _loop = asyncio.new_event_loop()
 
+# ponytail: Streamlit runs each interaction's script on its own thread, so two
+# overlapping clicks (e.g. an impatient double-click) can call into the same
+# loop concurrently -> "This event loop is already running" (observed live).
+# A lock serializes them into a queue instead of racing.
+_lock = threading.Lock()
+
 
 def _run(coro, err_prefix: str):
     try:
-        return _loop.run_until_complete(coro)
+        with _lock:
+            return _loop.run_until_complete(coro)
     except Exception as e:
         raise RuntimeError(f"{err_prefix}: {e}") from e
 
@@ -74,7 +82,8 @@ def ensure_ready_sync() -> None:
     if _state["llm_id"] is not None and _state["whisper_id"] is not None:
         return
     try:
-        _loop.run_until_complete(_connect_and_load())
+        with _lock:
+            _loop.run_until_complete(_connect_and_load())
     except WorkerNotFoundError as e:
         raise RuntimeError(_WORKER_HINT) from e
     except Exception as e:

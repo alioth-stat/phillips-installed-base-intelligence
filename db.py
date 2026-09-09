@@ -14,7 +14,9 @@ _OBSERVATION_FIELDS = [
 
 def init_db(path: str = "observations.db") -> sqlite3.Connection:
     is_new = not Path(path).exists()
-    conn = sqlite3.connect(path)
+    # check_same_thread=False: Streamlit can rerun the script on a different
+    # thread than the one that opened this cached connection.
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
 
     conn.execute("""

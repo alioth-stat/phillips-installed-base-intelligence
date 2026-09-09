@@ -36,10 +36,16 @@ with tab_captura:
     st.subheader("Nueva observación")
     modo = st.radio("Modo de captura", ["Texto", "Voz"], horizontal=True)
 
+    # ponytail: popping a widget's session_state key doesn't reliably clear
+    # it on rerun (Streamlit keeps the widget's last value); a fresh key per
+    # save forces a genuinely new, empty widget instead.
+    input_nonce = st.session_state.setdefault("input_nonce", 0)
+
     texto = ""
     if modo == "Texto":
         texto = st.text_area(
             "Describe lo que observaste",
+            key=f"texto_input_{input_nonce}",
             placeholder=(
                 "Estoy en Hospital DemoCare Pacific, en Panamá. Tienen dos "
                 "resonadores y un tomógrafo. Uno de los resonadores parece "
@@ -131,6 +137,7 @@ with tab_captura:
 
             del st.session_state["campos_extraidos"]
             st.session_state.pop("texto_transcrito", None)
+            st.session_state["input_nonce"] = input_nonce + 1
             st.rerun()
 
 with tab_panel:
