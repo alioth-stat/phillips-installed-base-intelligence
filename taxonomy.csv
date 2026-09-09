@@ -1,0 +1,41 @@
+category,value
+modality,Resonador Magnético (MRI)
+modality,Tomógrafo (CT)
+modality,Ecógrafo (Ultrasonido)
+modality,Rayos X
+modality,Monitor de Paciente
+modality,Bomba de Infusión
+modality,Desfibrilador
+modality,Ventilador Mecánico
+modality,Electrocardiógrafo (ECG)
+modality,Mamógrafo
+modality,Angiógrafo
+modality,Gammacámara (Medicina Nuclear)
+modality,Densitómetro Óseo
+modality,Incubadora Neonatal
+modality,Bisturí Eléctrico (Electrocauterio)
+modality,Esterilizador (Autoclave)
+modality,Máquina de Anestesia
+modality,Torre de Endoscopía
+modality,Sistema de Rayos X Portátil
+modality,Equipo de Diálisis
+brand,Philips
+brand,GE Healthcare
+brand,Siemens Healthineers
+brand,Canon Medical
+brand,Fujifilm
+brand,Mindray
+brand,Drager
+brand,Medtronic
+brand,Hologic
+brand,Samsung Healthcare
+brand,Toshiba Medical
+brand,Carestream
+brand,Hitachi Medical
+brand,Getinge
+brand,Stryker
+brand,B. Braun
+brand,Olympus
+brand,Varian
+brand,Zimmer Biomet
+brand,Baxter
