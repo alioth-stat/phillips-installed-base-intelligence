@@ -79,6 +79,20 @@ def post_transcribe(audio: UploadFile):
     return {"text": text}
 
 
+@app.post("/api/photo")
+def post_photo(photo: UploadFile):
+    suffix = Path(photo.filename or "photo.jpg").suffix or ".jpg"
+    with tempfile.TemporaryDirectory() as tmp:
+        img_path = Path(tmp) / f"photo{suffix}"
+        img_path.write_bytes(photo.file.read())
+        try:
+            description = qvac_client.describe_image_sync(str(img_path))
+            fields = extract.extract(description)
+        except RuntimeError as e:
+            raise HTTPException(status_code=502, detail=str(e)) from e
+    return {"description": description, "fields": fields}
+
+
 @app.post("/api/observations")
 def post_observation(body: ObservationIn):
     nuevo = body.model_dump()

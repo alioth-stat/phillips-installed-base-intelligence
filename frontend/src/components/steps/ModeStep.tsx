@@ -1,16 +1,17 @@
-import { FileText, Mic } from 'lucide-react'
+import { Camera, FileText, Mic } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassPanel } from '@/components/GlassPanel'
 import { cn } from '@/lib/utils'
 
 interface ModeStepProps {
-  onSelect: (mode: 'texto' | 'voz') => void
+  onSelect: (mode: 'texto' | 'voz' | 'foto') => void
   onBack: () => void
 }
 
 const options = [
   { id: 'texto' as const, label: 'Texto', icon: FileText, desc: 'Escribe lo que observaste' },
   { id: 'voz' as const, label: 'Voz', icon: Mic, desc: 'Graba tu observación' },
+  { id: 'foto' as const, label: 'Foto', icon: Camera, desc: 'Toma una foto del equipo' },
 ]
 
 export function ModeStep({ onSelect, onBack }: ModeStepProps) {
@@ -20,7 +21,7 @@ export function ModeStep({ onSelect, onBack }: ModeStepProps) {
         <h2 className="text-xl font-semibold tracking-tight text-foreground">
           ¿Cómo quieres capturar la observación?
         </h2>
-        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
           {options.map(({ id, label, icon: Icon, desc }) => (
             <button
               key={id}

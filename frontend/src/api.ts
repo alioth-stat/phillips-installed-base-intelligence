@@ -64,3 +64,14 @@ export function saveObservation(fields: Fields & { source_text: string }): Promi
 export function listObservations(): Promise<Observation[]> {
   return fetch('/api/observations').then(unwrap<Observation[]>)
 }
+
+export interface PhotoResult {
+  description: string
+  fields: Fields
+}
+
+export function analyzePhoto(file: File | Blob): Promise<PhotoResult> {
+  const form = new FormData()
+  form.append('photo', file, file instanceof File ? file.name : 'photo.jpg')
+  return fetch('/api/photo', { method: 'POST', body: form }).then(unwrap<PhotoResult>)
+}

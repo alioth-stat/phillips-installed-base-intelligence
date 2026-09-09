@@ -14,7 +14,7 @@ from tetherto.qvac_sdk import (
 )
 from tetherto.qvac_sdk import models as qvac_models
 
-_state: dict = {"client": None, "llm_id": None, "whisper_id": None}
+_state: dict = {"client": None, "llm_id": None, "whisper_id": None, "vlm_id": None}
 
 _WORKER_HINT = (
     "QVAC worker not found. Run `python -m tetherto.qvac_sdk install-worker` "
@@ -54,7 +54,7 @@ def _find_hoisted_bare_binary() -> str | None:
     return str(matches[-1]) if matches else None
 
 
-async def _connect_and_load() -> None:
+async def _connect() -> None:
     if _state["client"] is None:
         try:
             client = Client()
@@ -66,6 +66,9 @@ async def _connect_and_load() -> None:
         await client.connect()
         _state["client"] = client
 
+
+async def _connect_and_load() -> None:
+    await _connect()
     transport = _state["client"].transport
 
     if _state["llm_id"] is None:
@@ -78,6 +81,21 @@ async def _connect_and_load() -> None:
         _state["whisper_id"] = await load_model(transport, model_src=qvac_models.WHISPER_SMALL_Q8_0)
 
 
+async def _connect_and_load_vlm() -> None:
+    await _connect()
+    if _state["vlm_id"] is None:
+        transport = _state["client"].transport
+        # ponytail: a multimodal llama.cpp model is two files -- the LLM
+        # weights (model_src) plus the vision projector (mmproj), loaded
+        # together via model_config.projectionModelSrc, not a second
+        # load_model() call.
+        _state["vlm_id"] = await load_model(
+            transport,
+            model_src=qvac_models.VISIONPSY_NANO_460M_MULTIMODAL_Q4_K_M,
+            model_config={"projectionModelSrc": qvac_models.MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0.src},
+        )
+
+
 def ensure_ready_sync() -> None:
     if _state["llm_id"] is not None and _state["whisper_id"] is not None:
         return
@@ -88,6 +106,18 @@ def ensure_ready_sync() -> None:
         raise RuntimeError(_WORKER_HINT) from e
     except Exception as e:
         raise RuntimeError(f"QVAC setup failed: {e}") from e
+
+
+def ensure_vlm_ready_sync() -> None:
+    if _state["vlm_id"] is not None:
+        return
+    try:
+        with _lock:
+            _loop.run_until_complete(_connect_and_load_vlm())
+    except WorkerNotFoundError as e:
+        raise RuntimeError(_WORKER_HINT) from e
+    except Exception as e:
+        raise RuntimeError(f"QVAC VLM setup failed: {e}") from e
 
 
 async def _extract(text: str, json_schema: dict, system_prompt: str | None) -> str:
@@ -133,3 +163,27 @@ async def _transcribe(audio_file_path: str) -> str:
 def transcribe_sync(audio_file_path: str) -> str:
     ensure_ready_sync()
     return _run(_transcribe(audio_file_path), "QVAC transcription failed")
+
+
+_IMAGE_PROMPT = (
+    "Look at this photo of a piece of medical equipment. Describe it factually: "
+    "the type of equipment, and any brand, manufacturer, or model number visible "
+    "on labels or the equipment body. Read text exactly as printed. If something "
+    "is not visible or not legible, do not guess it."
+)
+
+
+async def _describe_image(image_path: str) -> str:
+    transport = _state["client"].transport
+    run = completion(
+        transport,
+        model_id=_state["vlm_id"],
+        history=[{"role": "user", "content": _IMAGE_PROMPT, "attachments": [{"path": image_path}]}],
+        stream=False,
+    )
+    return await run.text()
+
+
+def describe_image_sync(image_path: str) -> str:
+    ensure_vlm_ready_sync()
+    return _run(_describe_image(image_path), "QVAC image description failed")

@@ -1,12 +1,12 @@
-import { useRef, useState } from 'react'
-import { Mic, Square } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Camera, Mic, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { GlassPanel } from '@/components/GlassPanel'
-import { extractText, transcribeAudio, type Fields } from '@/api'
+import { analyzePhoto, extractText, transcribeAudio, type Fields } from '@/api'
 
 interface CaptureStepProps {
-  mode: 'texto' | 'voz'
+  mode: 'texto' | 'voz' | 'foto'
   onExtracted: (sourceText: string, fields: Fields) => void
   onBack: () => void
 }
@@ -21,8 +21,23 @@ export function CaptureStep({ mode, onExtracted, onBack }: CaptureStepProps) {
   const [isExtracting, setIsExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false)
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null)
+      return
+    }
+    const url = URL.createObjectURL(photoFile)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photoFile])
 
   async function startRecording() {
     setError(null)
@@ -72,7 +87,79 @@ export function CaptureStep({ mode, onExtracted, onBack }: CaptureStepProps) {
     }
   }
 
+  async function handleAnalyzePhoto() {
+    if (!photoFile) return
+    setError(null)
+    setIsAnalyzingPhoto(true)
+    try {
+      const result = await analyzePhoto(photoFile)
+      onExtracted(result.description, result.fields)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al analizar la foto.')
+    } finally {
+      setIsAnalyzingPhoto(false)
+    }
+  }
+
   const busy = isTranscribing || isExtracting
+
+  if (mode === 'foto') {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <GlassPanel className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Toma una foto del equipo
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Enfoca la placa o etiqueta del equipo para leer marca y modelo.
+          </p>
+
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-white/50 p-6">
+            {photoPreview ? (
+              <img
+                src={photoPreview}
+                alt="Vista previa del equipo"
+                className="max-h-64 rounded-lg object-contain"
+              />
+            ) : (
+              <Camera className="size-10 text-muted-foreground" />
+            )}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={isAnalyzingPhoto}
+              onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isAnalyzingPhoto}
+              onClick={() => photoInputRef.current?.click()}
+            >
+              {photoFile ? 'Elegir otra foto' : 'Tomar / elegir foto'}
+            </Button>
+            {isAnalyzingPhoto && (
+              <p className="text-sm text-muted-foreground">Analizando con QVAC (on-device)...</p>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="ghost" onClick={onBack} disabled={isAnalyzingPhoto}>
+              Atrás
+            </Button>
+            <Button onClick={handleAnalyzePhoto} disabled={!photoFile || isAnalyzingPhoto}>
+              {isAnalyzingPhoto ? 'Analizando con QVAC...' : 'Analizar foto'}
+            </Button>
+          </div>
+        </GlassPanel>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">

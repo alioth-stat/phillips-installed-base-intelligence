@@ -24,7 +24,7 @@ const EMPTY_FIELDS: Fields = {
 
 function App() {
   const [step, setStep] = useState<Step>('login')
-  const [mode, setMode] = useState<'texto' | 'voz'>('texto')
+  const [mode, setMode] = useState<'texto' | 'voz' | 'foto'>('texto')
   const [sourceText, setSourceText] = useState('')
   const [fields, setFields] = useState<Fields>(EMPTY_FIELDS)
   // StepShell keeps every step mounted at all times (needed for the slide
