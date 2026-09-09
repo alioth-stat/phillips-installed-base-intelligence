@@ -1,5 +1,7 @@
 # Customer Installed Base Intelligence
 
+🇬🇧 English &nbsp;·&nbsp; 🇪🇸 [Leer en español](README.es.md)
+
 **Philips challenge submission for the Decentralized AI Hackathon, ISD Summit Panama (Sept 2026)**
 
 ![On-device inference](https://img.shields.io/badge/inference-100%25%20on--device-1e3a5f)
