@@ -3,9 +3,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if [ ! -d .venv ]; then
+# Check for the actual binary, not just the directory -- a venv left behind
+# by a prior failed install (e.g. python3 -m venv succeeded but pip install
+# died right after) would otherwise pass a bare `-d .venv` check and get
+# silently skipped forever, with no fastapi/uvicorn ever installed into it.
+if [ ! -x .venv/bin/uvicorn ]; then
     echo "Creando entorno virtual e instalando dependencias de Python..."
-    python3 -m venv .venv
+    [ -d .venv ] || python3 -m venv .venv
     .venv/bin/pip install -q -r requirements.txt
 fi
 

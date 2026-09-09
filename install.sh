@@ -54,8 +54,13 @@ if [ "$target" = phone ]; then
     pkg update -y
     pkg install -y python nodejs-lts ffmpeg clang git
 
-    if [ ! -d .venv ]; then
-        python3 -m venv .venv
+    # Check for the actual binary, not just the directory -- a venv left
+    # behind by a prior failed install would otherwise pass a bare `-d .venv`
+    # check and get silently skipped, with nothing ever pip-installed into
+    # it. Confirmed live: the /tmp fix above shipped after a first run had
+    # already created an empty .venv and died before pip install ran.
+    if [ ! -x .venv/bin/uvicorn ]; then
+        [ -d .venv ] || python3 -m venv .venv
         # pandas is only used by the Streamlit fallback UI (app.py), not the
         # FastAPI path this runs -- it's also the dependency most likely to
         # need a from-source build under Termux's bionic libc, so skip it
