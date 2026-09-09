@@ -44,7 +44,7 @@ function App() {
 
   return (
     <>
-      <Background />
+      <Background step={index} />
       <StepShell index={index}>
         {[
           <LoginStep

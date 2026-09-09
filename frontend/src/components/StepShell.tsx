@@ -1,43 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { STEP_DURATION, STEP_EASE } from '@/lib/motion'
 
 interface StepShellProps {
   index: number
   children: React.ReactNode[]
 }
 
-const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)'
-const DURATION = 280
-
-function usePrefersReducedMotion() {
-  const [reduced] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  )
-  return reduced
-}
-
-// Sliding + blur-masked crossfade between wizard steps. This is a discrete,
+// Sliding crossfade between wizard steps. This is a discrete,
 // button-triggered step change (not a drag gesture), so a CSS transition is
-// the right tool -- no need for a JS spring library here.
+// the right tool -- no need for a JS spring library here. The parallax cue
+// lives in Background, which shifts its dither layer on the same timing.
 export function StepShell({ index, children }: StepShellProps) {
   const reducedMotion = usePrefersReducedMotion()
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const mounted = useRef(false)
-
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true
-      return
-    }
-    if (reducedMotion) return
-    setIsTransitioning(true)
-    const t = setTimeout(() => setIsTransitioning(false), DURATION)
-    return () => clearTimeout(t)
-  }, [index, reducedMotion])
-
   const count = children.length
 
   if (reducedMotion) {
-    // Instant swap, cross-fade only -- no translate, no blur.
+    // Instant swap, cross-fade only -- no translate.
     return (
       <div className="w-full">
         {children.map((child, i) => (
@@ -65,8 +43,7 @@ export function StepShell({ index, children }: StepShellProps) {
         style={{
           width: `${count * 100}%`,
           transform: `translateX(-${index * (100 / count)}%)`,
-          transition: `transform ${DURATION}ms ${EASE_OUT}, filter ${DURATION}ms ease`,
-          filter: isTransitioning ? 'blur(4px)' : 'blur(0px)',
+          transition: `transform ${STEP_DURATION}ms ${STEP_EASE}`,
         }}
       >
         {children.map((child, i) => (
