@@ -63,7 +63,7 @@ export function ReviewStep({ sourceText, fields, onSaved, onBack }: ReviewStepPr
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-dvh items-center justify-center p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <GlassPanel className="flex max-w-2xl flex-col gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-tight text-foreground">

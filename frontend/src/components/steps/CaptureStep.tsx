@@ -51,6 +51,13 @@ export function CaptureStep({ mode, onExtracted, onBack }: CaptureStepProps) {
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        // A clip stopped almost immediately can leave the webm muxer with only
+        // a header and no finished cluster -- ffmpeg then fails to parse it.
+        // Catch that here with a clear message instead of a raw transcode error.
+        if (blob.size < 4000) {
+          setError('Grabación muy corta. Mantén presionado "Grabar" al menos un par de segundos.')
+          return
+        }
         setIsTranscribing(true)
         try {
           const transcript = await transcribeAudio(blob)
@@ -61,7 +68,10 @@ export function CaptureStep({ mode, onExtracted, onBack }: CaptureStepProps) {
           setIsTranscribing(false)
         }
       }
-      recorder.start()
+      // Timeslice so the muxer flushes data periodically during recording,
+      // not only in one shot at stop() -- lowers the odds of an unfinished
+      // cluster on short clips.
+      recorder.start(250)
       mediaRecorderRef.current = recorder
       setIsRecording(true)
     } catch {
@@ -105,7 +115,7 @@ export function CaptureStep({ mode, onExtracted, onBack }: CaptureStepProps) {
 
   if (mode === 'foto') {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6">
+      <div className="flex min-h-dvh items-center justify-center p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <GlassPanel className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
             Toma una foto del equipo
@@ -162,7 +172,7 @@ export function CaptureStep({ mode, onExtracted, onBack }: CaptureStepProps) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-dvh items-center justify-center p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <GlassPanel className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold tracking-tight text-foreground">
           Describe lo que observaste

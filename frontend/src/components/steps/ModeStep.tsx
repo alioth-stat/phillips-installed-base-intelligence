@@ -16,7 +16,7 @@ const options = [
 
 export function ModeStep({ onSelect, onBack }: ModeStepProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-dvh items-center justify-center p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <GlassPanel className="flex flex-col items-center gap-6 text-center">
         <h2 className="text-xl font-semibold tracking-tight text-foreground">
           ¿Cómo quieres capturar la observación?
