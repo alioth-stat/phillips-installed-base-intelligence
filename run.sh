@@ -18,6 +18,17 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
     echo "Aviso: ffmpeg no está instalado — la captura por voz no funcionará sin él." >&2
 fi
 
+# Fail fast if another instance (or anything else) already holds these ports.
+# Without this check, a bind failure below still lets cleanup's `fuser -k`
+# fire on EXIT -- which kills whatever's on the port, including a perfectly
+# healthy unrelated server, not just this run's own children.
+for port in 8000 5173; do
+    if fuser "$port"/tcp >/dev/null 2>&1; then
+        echo "El puerto $port ya está en uso -- ¿hay otra instancia corriendo? Detenla primero." >&2
+        exit 1
+    fi
+done
+
 cleanup() {
     echo "Deteniendo servidores..."
     # `npm run dev` spawns vite as a grandchild (via an intermediate `sh -c`),
