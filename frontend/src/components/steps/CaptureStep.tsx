@@ -3,11 +3,11 @@ import { Camera, Mic, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { GlassPanel } from '@/components/GlassPanel'
-import { analyzePhoto, extractText, transcribeAudio, type Fields } from '@/api'
+import { analyzePhoto, extractText, transcribeAudio, type Extraction } from '@/api'
 
 interface CaptureStepProps {
   mode: 'texto' | 'voz' | 'foto'
-  onExtracted: (sourceText: string, fields: Fields) => void
+  onExtracted: (sourceText: string, extraction: Extraction) => void
   onBack: () => void
 }
 

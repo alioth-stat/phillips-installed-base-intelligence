@@ -68,7 +68,9 @@ flowchart LR
 1. **Capture.** Text, voice, or a photo of an equipment nameplate.
 2. **Extract.** A small model reads the text (or the photo's description)
    and returns structured fields as grammar-constrained JSON, so the output
-   is always valid against the schema, never free text to parse.
+   is always valid against the schema, never free text to parse. One
+   narration can list several equipment classes ("2 monitors, 1 MRI and a
+   defibrillator"); each becomes its own item, and its own observation.
 3. **Confirm.** Whatever the model could not infer comes back `null` and
    lands as an empty field in an editable form. This is deliberate: a
    multi-turn dialogue manager to ask follow-up questions would add real

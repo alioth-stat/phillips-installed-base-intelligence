@@ -89,51 +89,57 @@ with tab_captura:
             city = col1.text_input("Ciudad", value=campos.get("city") or "")
             country = col2.text_input("País", value=campos.get("country") or "")
 
-            modality = st.selectbox(
-                "Modalidad del equipo", [""] + modalidades,
-                index=(modalidades.index(campos["modality"]) + 1) if campos.get("modality") in modalidades else 0,
-            )
+            # One block per detected equipment class; each saves as its own observation.
+            filas = []
+            for n, item in enumerate(campos["items"] or [{}]):
+                st.markdown(f"**Equipo {n + 1}**")
+                modality = st.selectbox(
+                    "Modalidad del equipo", [""] + modalidades, key=f"modality_{n}",
+                    index=(modalidades.index(item["modality"]) + 1) if item.get("modality") in modalidades else 0,
+                )
 
-            col3, col4 = st.columns(2)
-            brand = col3.selectbox(
-                "Marca", [""] + marcas,
-                index=(marcas.index(campos["brand"]) + 1) if campos.get("brand") in marcas else 0,
-            )
-            model = col4.text_input("Modelo", value=campos.get("model") or "")
+                col3, col4 = st.columns(2)
+                brand = col3.selectbox(
+                    "Marca", [""] + marcas, key=f"brand_{n}",
+                    index=(marcas.index(item["brand"]) + 1) if item.get("brand") in marcas else 0,
+                )
+                model = col4.text_input("Modelo", value=item.get("model") or "", key=f"model_{n}")
 
-            col5, col6 = st.columns(2)
-            quantity = col5.number_input("Cantidad", min_value=0, step=1, value=int(campos.get("quantity") or 1))
-            age_years = col6.number_input("Antigüedad (años)", min_value=0.0, step=0.5, value=float(campos.get("age_years") or 0.0))
+                col5, col6 = st.columns(2)
+                quantity = col5.number_input("Cantidad", min_value=0, step=1, value=int(item.get("quantity") or 1), key=f"quantity_{n}")
+                age_years = col6.number_input("Antigüedad (años)", min_value=0.0, step=0.5, value=float(item.get("age_years") or 0.0), key=f"age_{n}")
+                filas.append((modality, brand, model, quantity, age_years))
 
             guardar = st.form_submit_button("Guardar observación")
 
         if guardar:
-            nuevo = {
-                "customer": customer or None,
-                "city": city or None,
-                "country": country or None,
-                "modality": modality or None,
-                "brand": brand or None,
-                "model": model or None,
-                "quantity": int(quantity) or None,
-                "age_years": age_years or None,
-                "source_text": st.session_state.get("texto_fuente", ""),
-            }
-            existentes = db.get_all_observations(conn)
-            duplicado = dedupe.find_duplicate(nuevo, existentes)
-            if duplicado:
-                score, status = confidence.compute_confidence(nuevo, duplicado["corroboration_count"] + 1)
-                db.update_corroboration(conn, duplicado["id"], score, status)
-                st.warning(
-                    f"Coincide con la observación #{duplicado['id']} ya registrada. "
-                    f"Se sumó como corroboración → **{STATUS_ES[status]}** (confianza {score})."
-                )
-            else:
-                score, status = confidence.compute_confidence(nuevo)
-                nuevo["confidence"] = score
-                nuevo["status"] = status
-                new_id = db.insert_observation(conn, nuevo)
-                st.success(f"Observación #{new_id} guardada → **{STATUS_ES[status]}** (confianza {score}).")
+            for modality, brand, model, quantity, age_years in filas:
+                nuevo = {
+                    "customer": customer or None,
+                    "city": city or None,
+                    "country": country or None,
+                    "modality": modality or None,
+                    "brand": brand or None,
+                    "model": model or None,
+                    "quantity": int(quantity) or None,
+                    "age_years": age_years or None,
+                    "source_text": st.session_state.get("texto_fuente", ""),
+                }
+                existentes = db.get_all_observations(conn)
+                duplicado = dedupe.find_duplicate(nuevo, existentes)
+                if duplicado:
+                    score, status = confidence.compute_confidence(nuevo, duplicado["corroboration_count"] + 1)
+                    db.update_corroboration(conn, duplicado["id"], score, status)
+                    st.warning(
+                        f"Coincide con la observación #{duplicado['id']} ya registrada. "
+                        f"Se sumó como corroboración → **{STATUS_ES[status]}** (confianza {score})."
+                    )
+                else:
+                    score, status = confidence.compute_confidence(nuevo)
+                    nuevo["confidence"] = score
+                    nuevo["status"] = status
+                    new_id = db.insert_observation(conn, nuevo)
+                    st.success(f"Observación #{new_id} guardada → **{STATUS_ES[status]}** (confianza {score}).")
 
             del st.session_state["campos_extraidos"]
             st.session_state.pop("texto_transcrito", None)

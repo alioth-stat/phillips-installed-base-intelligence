@@ -81,10 +81,22 @@ def post_transcribe(audio: UploadFile):
 
 @app.post("/api/photo")
 def post_photo(photo: UploadFile):
-    suffix = Path(photo.filename or "photo.jpg").suffix or ".jpg"
     with tempfile.TemporaryDirectory() as tmp:
-        img_path = Path(tmp) / f"photo{suffix}"
-        img_path.write_bytes(photo.file.read())
+        in_path = Path(tmp) / "input"
+        img_path = Path(tmp) / "photo.jpg"
+        in_path.write_bytes(photo.file.read())
+        # ponytail: the VLM re-tiles every image into 512px slices anyway (a
+        # 640px and a 4032px photo both became 12-16 slices, observed live),
+        # so extra pixels buy nothing -- normalize any size/format ffmpeg
+        # decodes (huge phone photos, webp, png w/ alpha) to a <=1024px JPEG.
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", str(in_path), "-frames:v", "1", "-q:v", "3",
+             "-vf", "scale=1024:1024:force_original_aspect_ratio=decrease:force_divisible_by=2",
+             str(img_path)],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise HTTPException(status_code=400, detail=f"No se pudo leer la imagen: {result.stderr.decode(errors='replace')[-300:]}")
         try:
             description = qvac_client.describe_image_sync(str(img_path))
             fields = extract.extract(description)

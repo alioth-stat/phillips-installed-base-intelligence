@@ -6,27 +6,18 @@ import { ModeStep } from '@/components/steps/ModeStep'
 import { CaptureStep } from '@/components/steps/CaptureStep'
 import { ReviewStep } from '@/components/steps/ReviewStep'
 import { PanelStep } from '@/components/steps/PanelStep'
-import type { Fields } from '@/api'
+import type { Extraction } from '@/api'
 
 const STEPS = ['login', 'mode', 'capture', 'review', 'panel'] as const
 type Step = (typeof STEPS)[number]
 
-const EMPTY_FIELDS: Fields = {
-  customer: null,
-  city: null,
-  country: null,
-  modality: null,
-  brand: null,
-  model: null,
-  quantity: null,
-  age_years: null,
-}
+const EMPTY_EXTRACTION: Extraction = { customer: null, city: null, country: null, items: [] }
 
 function App() {
   const [step, setStep] = useState<Step>('login')
   const [mode, setMode] = useState<'texto' | 'voz' | 'foto'>('texto')
   const [sourceText, setSourceText] = useState('')
-  const [fields, setFields] = useState<Fields>(EMPTY_FIELDS)
+  const [extraction, setExtraction] = useState<Extraction>(EMPTY_EXTRACTION)
   // StepShell keeps every step mounted at all times (needed for the slide
   // transition), so any step's mount-only effects/useState(props...) only
   // run once, at t=0 before real data exists, and never re-sync later --
@@ -69,7 +60,7 @@ function App() {
             mode={mode}
             onExtracted={(text, extracted) => {
               setSourceText(text)
-              setFields(extracted)
+              setExtraction(extracted)
               setReviewKey((k) => k + 1)
               setStep('review')
             }}
@@ -78,7 +69,7 @@ function App() {
           <ReviewStep
             key={`review-${reviewKey}`}
             sourceText={sourceText}
-            fields={fields}
+            extraction={extraction}
             onSaved={() => {
               setPanelKey((k) => k + 1)
               setStep('panel')

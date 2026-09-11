@@ -89,10 +89,17 @@ async def _connect_and_load_vlm() -> None:
         # weights (model_src) plus the vision projector (mmproj), loaded
         # together via model_config.projectionModelSrc, not a second
         # load_model() call.
+        # ponytail: the worker's default ctx_size is 1024, and image tokens +
+        # prompt overflow it ("Request uses 1173 context units ... capacity
+        # (1024 units)", observed live) -- 4096 leaves room for the image
+        # plus the generated description.
         _state["vlm_id"] = await load_model(
             transport,
             model_src=qvac_models.VISIONPSY_NANO_460M_MULTIMODAL_Q4_K_M,
-            model_config={"projectionModelSrc": qvac_models.MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0.src},
+            model_config={
+                "projectionModelSrc": qvac_models.MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0.src,
+                "ctx_size": 4096,
+            },
         )
 
 
@@ -153,11 +160,17 @@ async def _transcribe(audio_file_path: str) -> str:
         type="transcribe",
         audioChunk={"type": "filePath", "value": audio_file_path},
     )
-    last_text = ""
+    # ponytail: the stream yields one response per Whisper segment (a few
+    # seconds of audio each), not a growing transcript -- keeping only the
+    # last one dropped all but the final ~4s of a recording (observed live).
+    # Concatenate, like the SDK's own notebook.transcribe() does.
+    parts = []
     async for resp in transcribe(transport, req):
         if resp.text:
-            last_text = resp.text
-    return last_text or ""
+            parts.append(resp.text.strip())
+        if resp.done:
+            break
+    return " ".join(parts)
 
 
 def transcribe_sync(audio_file_path: str) -> str:

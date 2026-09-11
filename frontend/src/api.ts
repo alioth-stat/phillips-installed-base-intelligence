@@ -1,13 +1,22 @@
-export interface Fields {
-  customer: string | null
-  city: string | null
-  country: string | null
+export interface Item {
   modality: string | null
   brand: string | null
   model: string | null
   quantity: number | null
   age_years: number | null
 }
+
+// One narration can mention several equipment classes: shared visit fields
+// plus one item per class, each saved as its own observation.
+export interface Extraction {
+  customer: string | null
+  city: string | null
+  country: string | null
+  items: Item[]
+}
+
+// One saved observation: the visit fields plus a single item.
+export interface Fields extends Omit<Extraction, 'items'>, Item {}
 
 export interface Observation extends Fields {
   id: number
@@ -37,12 +46,12 @@ export function getTaxonomy(category: 'modality' | 'brand'): Promise<string[]> {
   return fetch(`/api/taxonomy?category=${category}`).then(unwrap<string[]>)
 }
 
-export function extractText(text: string): Promise<Fields> {
+export function extractText(text: string): Promise<Extraction> {
   return fetch('/api/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
-  }).then(unwrap<Fields>)
+  }).then(unwrap<Extraction>)
 }
 
 export function transcribeAudio(blob: Blob): Promise<string> {
@@ -67,7 +76,7 @@ export function listObservations(): Promise<Observation[]> {
 
 export interface PhotoResult {
   description: string
-  fields: Fields
+  fields: Extraction
 }
 
 export function analyzePhoto(file: File | Blob): Promise<PhotoResult> {

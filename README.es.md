@@ -75,7 +75,9 @@ flowchart LR
 2. **Extracción.** Un modelo pequeño lee el texto (o la descripción de la
    foto) y devuelve campos estructurados como JSON forzado por gramática a
    nivel de decodificación, así que la salida siempre es válida contra el
-   schema, nunca texto libre que haya que interpretar.
+   schema, nunca texto libre que haya que interpretar. Una narración puede
+   listar varios tipos de equipo ("2 monitores, 1 resonador y un
+   desfibrilador"); cada uno se vuelve un ítem, y una observación propia.
 3. **Confirmación.** Lo que el modelo no pudo inferir vuelve como `null` y
    queda como un campo vacío en un formulario editable. Es deliberado: un
    motor de diálogo multi-turno para preguntas de seguimiento agregaría

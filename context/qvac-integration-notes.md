@@ -111,10 +111,21 @@ req = TranscribeRequest(
     type="transcribe",          # <-- see gotcha below, don't omit this
     audioChunk={"type": "filePath", "value": "/abs/path/to/audio.wav"},
 )
+parts = []
 async for resp in transcribe(transport, req):
     if resp.text:
-        last_text = resp.text
+        parts.append(resp.text.strip())
+    if resp.done:
+        break
+text = " ".join(parts)
 ```
+
+**Concatenate the stream, don't keep the last response.** Each streamed
+response is one Whisper *segment* (a few seconds of audio), not a growing
+cumulative transcript. An earlier version of this snippet kept only
+`resp.text` from the last iteration, which silently dropped everything but
+the final ~4 seconds of a recording. The SDK's own `notebook.transcribe()`
+concatenates the same way.
 
 **Gotcha, cost real debugging time:** `TranscribeRequest.type` has a
 pydantic default (`"transcribe"`), but the SDK serializes the wire payload
@@ -151,9 +162,17 @@ vlm_id = await load_model(
     model_src=qvac_models.VISIONPSY_NANO_460M_MULTIMODAL_Q4_K_M,
     model_config={
         "projectionModelSrc": qvac_models.MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0.src,
+        "ctx_size": 4096,
     },
 )
 ```
+
+**Pass `ctx_size`.** The worker defaults to a 1024-token context, and the
+VLM re-tiles *every* image (even a 640px one) into up to 16 512px slices +
+an overview at 64 tokens each, which overflows 1024 on its own:
+`Request uses 1173 context units and leaves no room to generate within the
+effective context capacity (1024 units)`. 4096 fits the image plus the
+generated description.
 
 There is no separate "load the projector" call — passing its `.src` string
 under `model_config.projectionModelSrc` in the *same* `load_model()` call is
