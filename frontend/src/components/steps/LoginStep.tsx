@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { GlassPanel } from '@/components/GlassPanel'
+import philipsLogo from '../../../assets/philipslogo-shield.png'
 
 interface LoginStepProps {
   onStart: () => void
@@ -10,6 +11,7 @@ export function LoginStep({ onStart, onViewPanel }: LoginStepProps) {
   return (
     <div className="flex min-h-dvh items-center justify-center p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <GlassPanel className="flex flex-col items-center gap-6 text-center">
+        <img src={philipsLogo} alt="Philips" className="h-24 w-auto md:h-28" />
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
             Inteligencia de Base Instalada de Clientes

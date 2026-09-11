@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { Database, FileSpreadsheet } from 'lucide-react'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -99,10 +100,23 @@ export function PanelStep({ onNewObservation, onBack }: PanelStepProps) {
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
             Información recopilada
           </h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={onBack}>
               Atrás
             </Button>
+            {observations.length > 0 && (
+              <>
+                {/* Plain links: the backend's Content-Disposition names and downloads the file. */}
+                <a href="/api/export.xlsx" download className={buttonVariants({ variant: 'outline' })}>
+                  <FileSpreadsheet />
+                  Exportar Excel
+                </a>
+                <a href="/api/export.sql" download className={buttonVariants({ variant: 'outline' })}>
+                  <Database />
+                  Exportar SQL
+                </a>
+              </>
+            )}
             <Button onClick={onNewObservation}>Nueva observación</Button>
           </div>
         </div>

@@ -1,5 +1,12 @@
 REQUIRED_FIELDS = ["customer", "city", "country", "modality", "brand", "model"]
 
+STATUS_ES = {
+    "confirmed": "Confirmado",
+    "reported": "Reportado",
+    "estimated": "Estimado",
+    "unknown": "Desconocido",
+}
+
 
 def compute_confidence(fields: dict, corroboration_count: int = 1) -> tuple[float, str]:
     completeness = sum(1 for k in REQUIRED_FIELDS if fields.get(k)) / len(REQUIRED_FIELDS)

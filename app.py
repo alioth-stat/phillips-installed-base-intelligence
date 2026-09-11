@@ -9,13 +9,7 @@ import db
 import dedupe
 import extract
 import qvac_client
-
-STATUS_ES = {
-    "confirmed": "Confirmado",
-    "reported": "Reportado",
-    "estimated": "Estimado",
-    "unknown": "Desconocido",
-}
+from confidence import STATUS_ES
 
 st.set_page_config(page_title="Inteligencia de Base Instalada", layout="wide")
 

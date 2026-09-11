@@ -4,15 +4,17 @@ QVAC/sqlite calls in its threadpool automatically.
 """
 import subprocess
 import tempfile
+from datetime import date
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import confidence
 import db
 import dedupe
+import export
 import extract
 import qvac_client
 
@@ -125,3 +127,21 @@ def post_observation(body: ObservationIn):
 @app.get("/api/observations")
 def list_observations():
     return db.get_all_observations(conn)
+
+
+def _attachment(ext: str) -> dict:
+    return {"Content-Disposition": f'attachment; filename="observaciones-{date.today()}.{ext}"'}
+
+
+@app.get("/api/export.xlsx")
+def export_xlsx():
+    return Response(
+        export.xlsx(conn),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=_attachment("xlsx"),
+    )
+
+
+@app.get("/api/export.sql")
+def export_sql():
+    return Response(export.sql_dump(conn), media_type="application/sql", headers=_attachment("sql"))
